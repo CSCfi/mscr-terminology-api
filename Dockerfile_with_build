@@ -1,0 +1,21 @@
+FROM gradle:jdk11-alpine AS BUILD
+COPY --chown=gradle:gradle . /home/gradle
+COPY build.gradle settings.gradle gradlew .
+COPY src .
+COPY gradle .
+
+ARG ARG_USERNAME
+ARG ARG_TOKEN
+ENV GPR_USERNAME=${ARG_USERNAME}
+ENV GPR_TOKEN=${ARG_TOKEN}
+
+RUN ./gradlew build
+
+# Package stage
+
+FROM docker-registry.rahti.csc.fi/mscr-test/yti-docker-java17-base:yti-docker-java11-base
+
+COPY --from=BUILD /home/gradle/build/libs/yti-terminology-api.jar yti-terminology-api.jar
+
+ENTRYPOINT ["/bootstrap.sh", "yti-terminology-api.jar", "-j", "-Djava.security.egd=file:/dev/./urandom"]
+
