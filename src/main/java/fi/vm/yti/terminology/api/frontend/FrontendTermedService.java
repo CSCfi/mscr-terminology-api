@@ -17,6 +17,8 @@ import fi.vm.yti.terminology.api.frontend.searchdto.StatusCountDTO;
 import fi.vm.yti.terminology.api.frontend.searchdto.StatusCountSearchResponse;
 import fi.vm.yti.terminology.api.migration.DomainIndex;
 import fi.vm.yti.terminology.api.model.termed.*;
+import fi.vm.yti.terminology.api.mscr.FakePIDServiceImpl;
+import fi.vm.yti.terminology.api.mscr.PIDType;
 import fi.vm.yti.terminology.api.security.AuthorizationManager;
 import fi.vm.yti.terminology.api.util.JsonUtils;
 import fi.vm.yti.terminology.api.util.Parameters;
@@ -63,6 +65,8 @@ public class FrontendTermedService {
     private final AuthenticatedUserProvider userProvider;
     private final AuthorizationManager authorizationManager;
     private final String namespaceRoot;
+    
+    private final FakePIDServiceImpl PIDService;
 
     private final Cache<String, JsonNode> nodeListCache;
 
@@ -70,13 +74,15 @@ public class FrontendTermedService {
     public FrontendTermedService(TermedRequester termedRequester, FrontendGroupManagementService groupManagementService,
             AuthenticatedUserProvider userProvider, AuthorizationManager authorizationManager,
             @Value("${namespace.root}") String namespaceRoot,
-            @Value("${termed.cache.expiration:1800}") Long cacheExpireTime) {
+            @Value("${termed.cache.expiration:1800}") Long cacheExpireTime,
+            FakePIDServiceImpl PIDService) {
         this.termedRequester = termedRequester;
         this.groupManagementService = groupManagementService;
         this.userProvider = userProvider;
         this.authorizationManager = authorizationManager;
         this.namespaceRoot = namespaceRoot;
-
+        this.PIDService = PIDService;
+        
         this.nodeListCache = CacheBuilder.newBuilder()
                 .expireAfterWrite(cacheExpireTime, TimeUnit.SECONDS)
                 .maximumSize(1000)
@@ -188,7 +194,9 @@ public class FrontendTermedService {
 
         //We have to set uri for vocabulary node by ourselves
         // otherwise termed will create a uri appending terminological-vocabulary-0
-        vocabularyNode.setUri(namespaceRoot + prefix);
+        //vocabularyNode.setUri(namespaceRoot + prefix);
+        String PID = PIDService.mint(PIDType.HANDLE);
+        vocabularyNode.setUri(PID);
 
         try {
             var templateMetaNodes = getTypes(templateGraphId);
