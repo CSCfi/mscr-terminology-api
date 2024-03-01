@@ -1,10 +1,16 @@
 package fi.vm.yti.terminology.api.resolve;
 
+import static java.util.Objects.requireNonNull;
+import static org.springframework.http.HttpMethod.GET;
+
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -14,17 +20,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import fi.vm.yti.terminology.api.TermedContentType;
 import fi.vm.yti.terminology.api.TermedRequester;
 import fi.vm.yti.terminology.api.exception.ResourceNotFoundException;
 import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
+import fi.vm.yti.terminology.api.index.IndexElasticSearchService;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
 import fi.vm.yti.terminology.api.model.termed.Graph;
 import fi.vm.yti.terminology.api.model.termed.NodeType;
 import fi.vm.yti.terminology.api.resolve.ResolvedResource.Type;
 import fi.vm.yti.terminology.api.util.Parameters;
-import static java.util.Objects.requireNonNull;
-import static org.springframework.http.HttpMethod.GET;
 
 @Service
 public class ResolveService {
@@ -32,15 +39,44 @@ public class ResolveService {
     private static final Logger logger = LoggerFactory.getLogger(ResolveService.class);
     private final TermedRequester termedRequester;
     private final String namespaceRoot;
+    private final IndexElasticSearchService esService;
 
     private static final Pattern PREFIX_PATTERN = Pattern.compile("^(?<prefix>[\\w\\-]+)/?$");
     private static final Pattern PREFIX_AND_RESOURCE_PATTERN = Pattern.compile("^(?<prefix>[\\w\\-]+)/(?<resource>[\\w\\-]+)$");
 
     @Autowired
     ResolveService(TermedRequester termedRequester,
+    				IndexElasticSearchService esService,
                    @Value("${namespace.root}") String namespaceRoot) {
         this.termedRequester = termedRequester;
         this.namespaceRoot = namespaceRoot;
+        this.esService = esService;
+    }
+    
+    public ResolvedResource resolveVocublaryByPID(String pid) {
+    	
+    	if(pid.indexOf("@") > 0) {
+    		pid = pid.substring(0, pid.indexOf("@"));
+    	}
+    	
+		// query es by uri 
+		SearchRequest sr = new SearchRequest("vocabularies");
+		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder(); 
+		searchSourceBuilder.query(QueryBuilders.termQuery("uri", pid));
+		sr.source(searchSourceBuilder);
+		JsonNode r = esService.freeSearchFromIndex(sr);
+		JsonNode hits = r.get("hits").get("hits");
+		if(hits.size() == 1) {
+			JsonNode hit = hits.get(0);
+			JsonNode source = hit.get("_source");
+			JsonNode graph = source.get("type").findValue("graph");
+    		return new ResolvedResource(UUID.fromString(graph.get("id").asText()) , Type.VOCABULARY);
+		}
+		else if(hits.size() > 1) {
+			throw new ResolveException("Multiple vocabularies found. This should not happend. " + pid);
+		}
+
+    	throw new ResolveException("PID not found: " + pid);
     }
 
     public ResolvedResource resolveResource(String uri) {
@@ -132,6 +168,21 @@ public class ResolveService {
 
         return requireNonNull(termedRequester.exchange(TermedRequester.PATH_NODE_TREES, GET, params, String.class, contentType));
     }
+    
+    String getSingleResource(@NotNull UUID graphId,
+            @NotNull List<NodeType> types,
+            TermedContentType contentType,
+            @Nullable UUID resourceId) {
+
+		var params = new Parameters();
+		params.add("select", "*");
+		params.add("select", "properties.*");
+		params.add("select", "references.*");
+		params.add("where", formatWhereClause(graphId, types, resourceId));
+		params.add("pretty", "true");
+		
+		return requireNonNull(termedRequester.exchange(TermedRequester.PATH_NODE_TREES, GET, params, String.class, contentType));
+	}
 
     String getTerminology(@NotNull UUID id, TermedContentType contentType) {
         var params = new Parameters();
@@ -140,7 +191,19 @@ public class ResolveService {
         params.add("max", "-1");
         params.add("pretty", "true");
         return requireNonNull(termedRequester.exchange("/graphs/" + id + TermedRequester.PATH_NODE_TREES, GET, params, String.class, contentType));
-    }
+    }  
+    
+    String getSingleTerminology(@NotNull UUID id, @NotNull String pid, TermedContentType contentType) {
+        var params = new Parameters();
+        params.add("select", "*");
+        params.add("where", "uri:" + pid);
+        //params.add("select", "references.prefLabelXl:1");
+        params.add("max", "-1");
+        params.add("pretty", "true");
+        return requireNonNull(termedRequester.exchange("/graphs/" + id + TermedRequester.PATH_NODE_TREES, GET, params, String.class, contentType));
+    }      
+    
+    
 
     private static @NotNull String formatWhereClause(@NotNull UUID graphId,
                                                      @NotNull List<NodeType> types,

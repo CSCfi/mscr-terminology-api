@@ -1,5 +1,8 @@
 package fi.vm.yti.terminology.api.resolve;
 
+import static java.util.Collections.singletonList;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
 import java.net.URI;
 import java.util.UUID;
 
@@ -14,10 +17,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.util.HtmlUtils;
 
 import fi.vm.yti.terminology.api.TermedContentType;
 import fi.vm.yti.terminology.api.model.termed.NodeType;
@@ -26,10 +31,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.util.HtmlUtils;
-
-import static java.util.Collections.singletonList;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @Controller
 @RequestMapping("/api/v1")
@@ -177,6 +178,34 @@ public class ResolveController {
         var tct = TermedContentType.fromString(format, acceptHeader);
         return buildResponse(urlResolverService.getResource(graphId, singletonList(NodeType.Collection), tct, id), tct);
     }
+    
+    @Operation(summary = "Get a concept", description = "Fetch a concept identified by PID in requested format")
+    @ApiResponse(responseCode = "200", description = "If the concept was found then it is returned in requested format. If the given IDs did not match a concept then behaviour is undefined.")
+    @GetMapping(path = "/concept/{pid}", produces = { APPLICATION_JSON_VALUE, "application/ld+json", "application/rdf+xml", "text/turtle" })
+    public ResponseEntity<String> getConceptByPID(
+    										 @PathVariable String pid,
+                                             @RequestParam(required = false) String format,
+                                             @Parameter(description = "Requested format. The request parameter \"format\" has priority over the Accept header.")
+                                             @RequestHeader("Accept") String acceptHeader) {
+        
+    	String conceptId = pid.substring(pid.indexOf("@concept=") + 9);
+    	ResolvedResource v = urlResolverService.resolveVocublaryByPID(pid);
+        var tct = TermedContentType.fromString(format, acceptHeader);
+        return buildResponse(urlResolverService.getSingleResource(v.getGraphId(), singletonList(NodeType.Concept), tct, UUID.fromString(conceptId)), tct);
+    }
+    @Operation(summary = "Get a terminology", description = "Fetch a terminology identified by the PID in requested format")
+    @ApiResponse(responseCode = "200", description = "If the terminology was found then it is returned in requested format. If the given ID did not match a terminology then behaviour is undefined.")
+    @GetMapping(path = "/vocabulary/{pid}", produces = { APPLICATION_JSON_VALUE, "application/ld+json", "application/rdf+xml", "text/turtle" })
+    public ResponseEntity<String> getVocabularyByPID(
+    											@PathVariable String pid,	
+                                                @RequestParam(required = false) String format,
+                                                @Parameter(description = "Requested format. The request parameter \"format\" has priority over the Accept header.")
+                                                @RequestHeader("Accept") String acceptHeader) {
+
+    	ResolvedResource v = urlResolverService.resolveVocublaryByPID(pid);
+    	var tct = TermedContentType.fromString(format, acceptHeader);
+        return buildResponse(urlResolverService.getSingleTerminology(v.getGraphId(), pid, tct), tct);
+    }    
 
     private ResponseEntity<String> buildResponse(String body,
                                                  TermedContentType type) {
