@@ -1,12 +1,24 @@
 package fi.vm.yti.terminology.api.frontend;
 
-import java.util.*;
+import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
+import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
+import static fi.vm.yti.terminology.api.validation.ValidationConstants.PREFIX_REGEX;
+import static fi.vm.yti.terminology.api.validation.ValidationConstants.TEXT_FIELD_MAX_LENGTH;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
-import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
-import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
-import fi.vm.yti.terminology.api.frontend.searchdto.*;
-import fi.vm.yti.terminology.api.validation.ValidGenericDeleteAndSave;
-import fi.vm.yti.terminology.api.validation.ValidVocabularyNode;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
+
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,27 +38,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
+import fi.vm.yti.terminology.api.exception.VocabularyNotFoundException;
+import fi.vm.yti.terminology.api.frontend.searchdto.ConceptSearchRequest;
+import fi.vm.yti.terminology.api.frontend.searchdto.ConceptSearchResponse;
+import fi.vm.yti.terminology.api.frontend.searchdto.CountDTO;
+import fi.vm.yti.terminology.api.frontend.searchdto.CountSearchResponse;
+import fi.vm.yti.terminology.api.frontend.searchdto.CreateVersionDTO;
+import fi.vm.yti.terminology.api.frontend.searchdto.CreateVersionResponse;
+import fi.vm.yti.terminology.api.frontend.searchdto.StatusCountSearchResponse;
+import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchRequest;
+import fi.vm.yti.terminology.api.frontend.searchdto.TerminologySearchResponse;
 import fi.vm.yti.terminology.api.model.termed.GenericDeleteAndSave;
 import fi.vm.yti.terminology.api.model.termed.GenericNode;
 import fi.vm.yti.terminology.api.model.termed.GenericNodeInlined;
 import fi.vm.yti.terminology.api.model.termed.Graph;
 import fi.vm.yti.terminology.api.model.termed.Identifier;
 import fi.vm.yti.terminology.api.model.termed.MetaNode;
+import fi.vm.yti.terminology.api.validation.ValidGenericDeleteAndSave;
+import fi.vm.yti.terminology.api.validation.ValidVocabularyNode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
-
-import static fi.vm.yti.terminology.api.model.termed.NodeType.Group;
-import static fi.vm.yti.terminology.api.model.termed.NodeType.Organization;
-import static fi.vm.yti.terminology.api.validation.ValidationConstants.PREFIX_REGEX;
-import static fi.vm.yti.terminology.api.validation.ValidationConstants.TEXT_FIELD_MAX_LENGTH;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @RestController
 @RequestMapping("/api/v1/frontend")
@@ -359,10 +373,30 @@ public class FrontendController {
         logger.info("and save ids: ");
         for (int i = 0; i < deleteAndSave.getSave().size(); i++) {
             logger.info(deleteAndSave.getSave().get(i).getId().toString());
+            String conceptID = deleteAndSave.getSave().get(i).getId().toString();
+            String terminologyPID = getVocabularyPID(deleteAndSave.getSave().get(i).getType().getGraphId().toString());
+            deleteAndSave.getSave().get(i).setUri(terminologyPID + "@concept=" + conceptID);
         }
 
         termedService.bulkChange(deleteAndSave, sync);
     }
+    
+    
+    
+    public String getVocabularyPID(String id) {
+		// query es by uri 
+		SearchRequest sr = new SearchRequest("vocabularies");
+		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder(); 
+		searchSourceBuilder.query(QueryBuilders.termQuery("id", id));
+		sr.source(searchSourceBuilder);
+		TerminologySearchResponse r = elasticSearchService.findTerminology(UUID.fromString(id));
+		if(r.getTotalHitCount() == 1) {
+			return r.getTerminologies().get(0).getUri();
+		}
+
+    	throw new RuntimeException("ID not found or multiple results. " + id);
+    }
+
 
     @Operation(summary = "Validate a bulk modification request", description = "Validate several nodes")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "JSON for the bulk request containing nodes to validate")
