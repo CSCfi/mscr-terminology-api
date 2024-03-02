@@ -27,8 +27,8 @@ public class SimpleExcelParser {
     private static final String CONCEPT_TYPE_URI = "http://www.w3.org/2004/02/skos/core#Concept";
     private static final String TERM_TYPE_URI = "http://www.w3.org/2008/05/skos-xl#Label";
 
-    private static final String[] CONCEPT_PROPERTIES = new String[]{"changeNote", "conceptClass", "conceptScope", "definition", "editorialNotes", "example", "externalLink", "historyNote", "notation", "note", "source", "status", "subjectArea", "wordClass"};
-    private static final String[] CONCEPT_NO_LANG_PROPERTIES = new String[]{"status"};
+    private static final String[] CONCEPT_PROPERTIES = new String[]{"uri", "changeNote", "conceptClass", "conceptScope", "definition", "editorialNotes", "example", "externalLink", "historyNote", "notation", "note", "source", "status", "subjectArea", "wordClass"};
+    private static final String[] CONCEPT_NO_LANG_PROPERTIES = new String[]{"status", "uri"};
 
     private static final String[] TERM_PROPERTIES = new String[]{"changeNote", "draftComment", "editorialNote", "historyNote", "scope", "source", "termConjugation", "termEquivalency", "termEquivalencyRelation", "termFamily", "termHomographNumber", "termInfo", "termStyle", "wordClass"};
     private static final String[] CONCEPT_MULTILINE_PROPERTIES = new String[]{"note", "example"};
@@ -115,7 +115,12 @@ public class SimpleExcelParser {
                 nodes.addAll(nodeset.getValue());
             }
             //Finally create concept node with correct properties and references
-            nodes.add(new GenericNode(new TypeId(NodeType.Concept, new GraphId(terminologyId), CONCEPT_TYPE_URI), conceptProperties, conceptReferences));
+            GenericNode node = new GenericNode(new TypeId(NodeType.Concept, new GraphId(terminologyId), CONCEPT_TYPE_URI), conceptProperties, conceptReferences);
+            if(conceptProperties.containsKey("uri")) {
+            	node.setUri(conceptProperties.get("uri").get(0).getValue());
+            	conceptProperties.remove("uri");
+            }
+            nodes.add(node);
         }
         return nodes;
     }
