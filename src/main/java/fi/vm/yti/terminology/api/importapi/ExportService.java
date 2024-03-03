@@ -5,6 +5,7 @@ import static org.springframework.http.HttpMethod.GET;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.StringReader;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -16,8 +17,12 @@ import fi.vm.yti.security.Role;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.terminology.api.importapi.excel.ExcelCreator;
 import fi.vm.yti.terminology.api.importapi.excel.JSONWrapper;
+import fi.vm.yti.terminology.api.mscr.SKOSMapper;
 import fi.vm.yti.terminology.api.security.AuthorizationTermedService;
 import jakarta.ws.rs.InternalServerErrorException;
+
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -262,4 +267,24 @@ public class ExportService {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename = " + filename + ".xlsx")
                 .body(new InputStreamResource(in));
     }
+
+	public ResponseEntity<?> getSKOS(UUID vocabularyId) {
+		String response = getFullVocabularyTXT(vocabularyId);
+		Model model = ModelFactory.createDefaultModel();
+		StringReader reader = new StringReader(response);
+		model.read(reader, null, "TTL");
+		reader.close();
+		
+		SKOSMapper m = new SKOSMapper();
+		Model resultModel = m.mapTermedToSKOS(model);
+		ByteArrayOutputStream out = new ByteArrayOutputStream();		
+		resultModel.write(out, "TTL");
+		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+		
+		return ResponseEntity
+                .ok()
+                .contentType(MediaType.valueOf(TermedContentType.RDF_TURTLE.getContentType()))
+                .body(new InputStreamResource(in));		
+		
+	}
 }

@@ -25,7 +25,13 @@ import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.vocabulary.DC;
+import org.apache.jena.vocabulary.DCTerms;
+import org.apache.jena.vocabulary.OWL;
+import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.SKOS;
+import org.apache.jena.vocabulary.SKOSXL;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -266,6 +272,55 @@ public class SKOSMapper {
 		
 		return file;
 		
+	}
+	
+	private void addProperty(Resource source, Property sourceProp, Resource target, Property targetProp) {
+		Statement stmt =source.getProperty(sourceProp);
+		if(stmt != null) {
+			target.addProperty(targetProp, stmt.getObject());
+		}
+ 				
+	}
+	
+	//
+	private Resource addConceptSchema(Model m, Model source) {
+		Resource ss = source.listSubjectsWithProperty(RDF.type, SKOS.ConceptScheme).next();
+		
+		Resource s = m.createResource(ss.getURI());
+		s.addProperty(RDF.type, SKOS.ConceptScheme);
+		addProperty(ss, SKOS.prefLabel, s, DC.title);		
+		addProperty(ss, m.createProperty("http://purl.org/termed/properties/", "createdDate"), s, DCTerms.created);
+		addProperty(ss, m.createProperty("http://purl.org/termed/properties/", "lastModifiedDate"), s, DCTerms.modified);
+		addProperty(ss, m.createProperty("http://purl.org/termed/properties/", "number"), s, OWL.versionInfo);		
+		
+		return ss;
+	}
+	
+	private void addConcept(Model m, Resource source, Resource scheme) {
+		Resource c = m.createResource(source.getURI());
+		c.addProperty(RDF.type, SKOS.Concept);
+		c.addProperty(SKOS.inScheme, scheme);
+		
+		addProperty(source, SKOS.definition, c, SKOS.definition);
+		addProperty(source, m.createProperty("http://purl.org/termed/properties/", "createdDate"), c, DCTerms.created);
+		addProperty(source, m.createProperty("http://purl.org/termed/properties/", "lastModifiedDate"), c, DCTerms.modified);
+
+		Resource prefLabelResource = source.getPropertyResourceValue(SKOSXL.prefLabel);
+		if(prefLabelResource != null) {
+			addProperty(prefLabelResource, SKOSXL.literalForm, c, SKOS.prefLabel);	
+		}
+		
+	
+	}
+	
+	public Model mapTermedToSKOS(Model source) {
+		Model m = ModelFactory.createDefaultModel();		
+		Resource scheme = addConceptSchema(m, source);
+		source.listSubjectsWithProperty(RDF.type, SKOS.Concept).forEach(c -> {
+			addConcept(m, c, scheme);
+			
+		});
+		return m;
 	}
 
 }

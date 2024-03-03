@@ -87,6 +87,8 @@ public class ExportController {
                 re = exportService.getRDF(id);
             } else if (format.equalsIgnoreCase("xlsx")) {
                 re = exportService.getXLSX(id, List.of());
+            } else if (format.equalsIgnoreCase("SKOS")) {
+                re = exportService.getSKOS(id);
             } else {
                 re = exportService.getTXT(id);
             }
