@@ -234,20 +234,22 @@ public class ImportService {
     }
 
     public UUID handleSimpleSKOSImport(UUID terminologyId, InputStream is) throws Exception {
-        // map SKOS rdf to NTRF 
-    	SKOSMapper m = new SKOSMapper();    	
-    	File outputFile = m.mapToSimpleExcel(is);
+    	SKOSMapper m = new SKOSMapper();    	    	
+    	InputStream is2 = null;
     	try {
-    		is = new FileInputStream(outputFile);
-    		return handleSimpleExcelImport(terminologyId, is);
-    	}catch(IOException ioex) {
-    		if(is != null) {
-    			is.close();
+    		File outputFile = m.mapToSimpleExcel(is);
+    		is2 = new FileInputStream(outputFile);
+    		return handleSimpleExcelImport(terminologyId, is2);
+    	}catch(Exception ex) {
+    		if(is2 != null) {
+    			try {
+					is2.close();
+				} catch (IOException ioex) {
+					throw ioex;
+				}
     		}
-    		throw ioex;
+    		throw ex;
     	}
-        
-
     }    
     
     public UUID handleSimpleExcelImport(UUID terminologyId, InputStream is) throws NullPointerException {
