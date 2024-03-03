@@ -117,6 +117,10 @@ dependencies {
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api:3.0.0'
     implementation 'org.apache.poi:poi-ooxml:5.2.2'
     implementation 'org.apache.poi:poi:5.2.2'
+    
+	implementation "org.apache.jena:jena-core:4.6.1"
+	implementation "org.apache.jena:jena-arq:4.6.1"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 dependencyManagement {
@@ -171,5 +175,3 @@ jaxb {
         }
     }
 }
-
-

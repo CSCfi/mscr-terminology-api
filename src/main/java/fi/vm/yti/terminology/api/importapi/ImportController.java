@@ -1,9 +1,14 @@
 package fi.vm.yti.terminology.api.importapi;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 
-import fi.vm.yti.terminology.api.exception.ExcelParseException;
-import fi.vm.yti.terminology.api.importapi.excel.ExcelImportResponseDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,7 +19,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import fi.vm.yti.terminology.api.exception.ExcelParseException;
 import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
+import fi.vm.yti.terminology.api.importapi.excel.ExcelImportResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterStyle;
@@ -22,8 +29,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE;
 
 @RestController
 @RequestMapping({"/api/v1/import", "/api/v1/frontend/import"})
@@ -60,7 +65,7 @@ public class ImportController {
         try {
             UUID jobToken = importService.handleExcelImport(file.getInputStream());
             return ResponseEntity.ok(new ExcelImportResponseDTO(jobToken, "SUCCESS"));
-        } catch (ExcelParseException e) {
+        } catch (ExcelParseException e) {        
             return ResponseEntity
                     .badRequest()
                     .body(
@@ -74,6 +79,35 @@ public class ImportController {
         }
     }
 
+    
+
+    
+    @Operation(summary = "Initiate simple SKOS import job", description = "Start the procedure to import concepts from SKOS TTL file")
+    @ApiResponse(
+            responseCode = "200",
+            description = "If import process started successfully then job token is returned as JSON",
+            content = {@Content(mediaType = APPLICATION_JSON_VALUE, schema = @Schema(implementation = ImportService.ImportResponse.class))})
+    @PostMapping(path = "simpleSKOS/{terminology}", consumes = MULTIPART_FORM_DATA_VALUE)
+    ResponseEntity<ExcelImportResponseDTO> importSimpleSKOS(@Parameter(description = "The ID of the terminology to import concepts to")
+                                                             @PathVariable("terminology") UUID terminologyId,
+                                                             @RequestPart(value = "file") MultipartFile file) {
+    	try {
+        	
+    		UUID jobId = importService.handleSimpleSKOSImport(terminologyId, file.getInputStream());        	
+            return ResponseEntity.ok(new ExcelImportResponseDTO(jobId, "SUCCESS"));
+        } catch (ExcelParseException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(
+                            new ExcelImportResponseDTO(
+                                    null,
+                                    e.getReason(),
+                                    new ExcelImportResponseDTO.ErrorDetails(e.getSheet(), e.getRowNumber(), e.getColumn())
+                            ));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } 
+    }    
     @Operation(summary = "Initiate simple Excel import job", description = "Start the procedure to import concepts from Excel file")
     @ApiResponse(
             responseCode = "200",

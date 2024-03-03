@@ -1,22 +1,24 @@
 package fi.vm.yti.terminology.api.importapi;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import fi.vm.yti.security.AuthenticatedUserProvider;
-import fi.vm.yti.security.Role;
-import fi.vm.yti.security.YtiUser;
-import fi.vm.yti.terminology.api.exception.ExcelParseException;
-import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
-import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
-import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
-import fi.vm.yti.terminology.api.importapi.ImportStatusResponse.ImportStatus;
-import fi.vm.yti.terminology.api.importapi.excel.ExcelParser;
-import fi.vm.yti.terminology.api.importapi.excel.TerminologyImportDTO;
-import fi.vm.yti.terminology.api.importapi.simpleexcel.SimpleExcelParser;
-import fi.vm.yti.terminology.api.migration.DomainIndex;
-import fi.vm.yti.terminology.api.model.ntrf.VOCABULARY;
-import fi.vm.yti.terminology.api.model.termed.*;
-import fi.vm.yti.terminology.api.security.AuthorizationManager;
-import fi.vm.yti.terminology.api.util.JsonUtils;
+import static fi.vm.yti.security.AuthorizationException.check;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import javax.annotation.PreDestroy;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+
 import org.apache.poi.openxml4j.util.ZipSecureFile;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
@@ -30,21 +32,32 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.PreDestroy;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.security.Role;
+import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.terminology.api.exception.ExcelParseException;
+import fi.vm.yti.terminology.api.exception.NamespaceInUseException;
+import fi.vm.yti.terminology.api.frontend.FrontendGroupManagementService;
+import fi.vm.yti.terminology.api.frontend.FrontendTermedService;
+import fi.vm.yti.terminology.api.importapi.ImportStatusResponse.ImportStatus;
+import fi.vm.yti.terminology.api.importapi.excel.ExcelParser;
+import fi.vm.yti.terminology.api.importapi.excel.TerminologyImportDTO;
+import fi.vm.yti.terminology.api.importapi.simpleexcel.SimpleExcelParser;
+import fi.vm.yti.terminology.api.migration.DomainIndex;
+import fi.vm.yti.terminology.api.model.ntrf.VOCABULARY;
+import fi.vm.yti.terminology.api.model.termed.Attribute;
+import fi.vm.yti.terminology.api.model.termed.GenericNode;
+import fi.vm.yti.terminology.api.model.termed.Graph;
+import fi.vm.yti.terminology.api.model.termed.NodeType;
+import fi.vm.yti.terminology.api.mscr.SKOSMapper;
+import fi.vm.yti.terminology.api.security.AuthorizationManager;
+import fi.vm.yti.terminology.api.util.JsonUtils;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static fi.vm.yti.security.AuthorizationException.check;
 
 @Service
 @EnableJms
@@ -220,6 +233,23 @@ public class ImportService {
         return new ResponseEntity<>( rv, HttpStatus.OK);
     }
 
+    public UUID handleSimpleSKOSImport(UUID terminologyId, InputStream is) throws Exception {
+        // map SKOS rdf to NTRF 
+    	SKOSMapper m = new SKOSMapper();    	
+    	File outputFile = m.mapToSimpleExcel(is);
+    	try {
+    		is = new FileInputStream(outputFile);
+    		return handleSimpleExcelImport(terminologyId, is);
+    	}catch(IOException ioex) {
+    		if(is != null) {
+    			is.close();
+    		}
+    		throw ioex;
+    	}
+        
+
+    }    
+    
     public UUID handleSimpleExcelImport(UUID terminologyId, InputStream is) throws NullPointerException {
         check(authorizationManager.canModifyAllGraphs(List.of(terminologyId)));
         boolean exists = terminologyExists(terminologyId);
