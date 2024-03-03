@@ -258,7 +258,7 @@ public class SKOSMapper {
 		for (Resource leaf : leafs) {
 			traverseUp(leaf, model, sheet, added);
 		}
-		File file = new File("test.xlsx");
+		File file = File.createTempFile("skos", "xlsx");
 		FileOutputStream os = new FileOutputStream(file);
 		wb.write(os);
 		wb.close();
