@@ -3,6 +3,7 @@ package fi.vm.yti.terminology.api.integration;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -22,6 +23,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
@@ -214,6 +221,35 @@ public class IntegrationController {
         return integrationService.handleResources(request);
     }
 
+    @GetMapping(path = "/vocabularyAsEnum", produces = APPLICATION_JSON_VALUE)
+    ResponseEntity<String> vocabularyAsEnum(@RequestParam(required = true) String vocabularyID, @RequestParam(required = true) String lang) throws JsonMappingException, JsonProcessingException {
+    	IntegrationResourceRequest request = new IntegrationResourceRequest();
+        request.setContainer(Set.of(vocabularyID));
+        request.setLanguage(lang);
+        String validationResult = validateResourcesInput(request);
+        if (validationResult != null) {
+            return new ResponseEntity<>("{\"errorMessage\":\"" + validationResult + "\"}", HttpStatus.BAD_REQUEST);
+        }
+        
+        ResponseEntity<String> response =  integrationService.handleResources(request);       
+        JsonMapper m = new JsonMapper();
+        JsonNode node = m.readTree(response.getBody());
+        
+        Iterator<JsonNode> concepts = node.get("results").elements();
+        
+        ObjectNode r = m.createObjectNode();
+        ArrayNode enums = m.createArrayNode();
+        while(concepts.hasNext()) {
+        	JsonNode pref =  concepts.next().get("prefLabel");
+        	if(pref != null && pref.has(lang)) {
+        		enums.add(pref.get(lang));
+        	}
+        }
+        r.set("enum", enums);
+        return  ResponseEntity.ok(m.writeValueAsString(r));
+    	
+    }
+    
     @Operation(summary = "Get concept list", description = "List or search for resources, i.e., the concepts. See also the alternative GET request variant.")
     @ApiResponse(
         responseCode = "200",

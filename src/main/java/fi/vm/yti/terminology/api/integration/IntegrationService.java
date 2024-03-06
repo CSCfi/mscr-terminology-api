@@ -488,7 +488,7 @@ public class IntegrationService {
             BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
             for (String uriFromRequest : request.getContainer()) {
                 uriFromRequest = uriFromRequest.replaceAll("/$", "");
-                if (namespacePattern.matcher(uriFromRequest).matches()) {
+                if (namespacePattern.matcher(uriFromRequest).matches() || uriFromRequest.startsWith("urn:") || uriFromRequest.startsWith("hdl:")) {
                     uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
                 } else {
                     logger.warn("URI is probably invalid: " + uriFromRequest);
@@ -643,7 +643,13 @@ public class IntegrationService {
             uri = source.get("uri").asText();
             // container is part of the uri
             // Remove code from uri so
-            container = uri.substring(0, uri.lastIndexOf("/")) + "/";
+            if(uri.lastIndexOf("/") >= 0) {
+            	container = uri.substring(0, uri.lastIndexOf("/")) + "/";	
+            }
+            else if(uri.lastIndexOf("@") > 0) {
+            	container = uri.substring(0, uri.lastIndexOf("@"));
+            }
+            
         } else {
             logger.warn("Resource response missing URI");
         }
