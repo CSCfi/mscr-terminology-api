@@ -488,12 +488,12 @@ public class IntegrationService {
             BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
             for (String uriFromRequest : request.getContainer()) {
                 uriFromRequest = uriFromRequest.replaceAll("/$", "");
-                if (namespacePattern.matcher(uriFromRequest).matches() || uriFromRequest.startsWith("urn:") || uriFromRequest.startsWith("hdl:")) {
-                    uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
-                } else {
-                    logger.warn("URI is probably invalid: " + uriFromRequest);
-                    uriBoolQuery.should(QueryBuilders.termQuery("uri", uriFromRequest)); // basically will not match
-                }
+                //if (namespacePattern.matcher(uriFromRequest).matches() ||  uriFromRequest.startsWith("urn:") || uriFromRequest.startsWith("hdl:")) {
+                uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
+                //} else {
+                //    logger.warn("URI is probably invalid: " + uriFromRequest);
+                //    uriBoolQuery.should(QueryBuilders.termQuery("uri", uriFromRequest)); // basically will not match
+                //}
                 terminologyNsUris.add(uriFromRequest);
             }
             uriBoolQuery.minimumShouldMatch(1);
