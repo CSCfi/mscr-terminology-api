@@ -1,5 +1,7 @@
 package fi.vm.yti.terminology.api.integration;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -48,7 +50,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RestController
 @RequestMapping("/api/v1/integration")
@@ -224,7 +225,7 @@ public class IntegrationController {
     @GetMapping(path = "/vocabularyAsEnum", produces = APPLICATION_JSON_VALUE)
     ResponseEntity<String> vocabularyAsEnum(@RequestParam(required = true) String vocabularyID, @RequestParam(required = true) String lang) throws JsonMappingException, JsonProcessingException {
     	IntegrationResourceRequest request = new IntegrationResourceRequest();
-        request.setContainer(Set.of(vocabularyID));
+        request.setVocabulary(vocabularyID);
         request.setLanguage(lang);
         String validationResult = validateResourcesInput(request);
         if (validationResult != null) {
@@ -240,9 +241,9 @@ public class IntegrationController {
         ObjectNode r = m.createObjectNode();
         ArrayNode enums = m.createArrayNode();
         while(concepts.hasNext()) {
-        	JsonNode pref =  concepts.next().get("prefLabel");
+        	JsonNode pref =  concepts.next().get("prefLabel");        	
         	if(pref != null && pref.has(lang)) {
-        		enums.add(pref.get(lang));
+        		enums.add(pref.get(lang).asText());
         	}
         }
         r.set("enum", enums);

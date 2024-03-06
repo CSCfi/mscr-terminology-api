@@ -488,12 +488,12 @@ public class IntegrationService {
             BoolQueryBuilder uriBoolQuery = QueryBuilders.boolQuery();
             for (String uriFromRequest : request.getContainer()) {
                 uriFromRequest = uriFromRequest.replaceAll("/$", "");
-                //if (namespacePattern.matcher(uriFromRequest).matches() ||  uriFromRequest.startsWith("urn:") || uriFromRequest.startsWith("hdl:")) {
-                uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
-                //} else {
-                //    logger.warn("URI is probably invalid: " + uriFromRequest);
-                //    uriBoolQuery.should(QueryBuilders.termQuery("uri", uriFromRequest)); // basically will not match
-                //}
+                if (namespacePattern.matcher(uriFromRequest).matches() ||  uriFromRequest.startsWith("urn:") || uriFromRequest.startsWith("hdl:")) {
+                	uriBoolQuery.should(QueryBuilders.prefixQuery("uri", uriFromRequest));
+                } else {
+                    logger.warn("URI is probably invalid: " + uriFromRequest);
+                    uriBoolQuery.should(QueryBuilders.termQuery("uri", uriFromRequest)); // basically will not match
+                }
                 terminologyNsUris.add(uriFromRequest);
             }
             uriBoolQuery.minimumShouldMatch(1);
@@ -580,6 +580,10 @@ public class IntegrationService {
         // NOTE: Status INCOMPLETE has some specific handling earlier.
         if (request.getStatus() != null && !request.getStatus().isEmpty()) {
             mustList.add(QueryBuilders.termsQuery("status", request.getStatus()));
+        }
+        
+        if(request.getVocabulary() != null) {
+        	mustList.add(QueryBuilders.termQuery("vocabulary.uri", request.getVocabulary()));
         }
 
         sourceBuilder.query(boolQuery);

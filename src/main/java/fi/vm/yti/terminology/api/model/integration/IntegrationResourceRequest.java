@@ -29,7 +29,8 @@ public class IntegrationResourceRequest {
     private Set<String> filter;
     private Set<String> uri;
     private boolean includeIncomplete;
-    private Set<String> includeIncompleteFrom;                                      
+    private Set<String> includeIncompleteFrom;          
+    private String vocabulary;
 
     private Integer pageSize;
     private Integer pageFrom;
@@ -62,7 +63,16 @@ public class IntegrationResourceRequest {
         this.pageFrom = pageFrom;
     }
 
-    public Set<String> getContainer() {
+    
+    public String getVocabulary() {
+		return vocabulary;
+	}
+
+	public void setVocabulary(String vocabulary) {
+		this.vocabulary = vocabulary;
+	}
+
+	public Set<String> getContainer() {
         return container;
     }
 
