@@ -4,14 +4,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
+import java.util.function.Consumer;
 
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
@@ -37,7 +33,6 @@ import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.w3c.dom.Document;
 
 import fi.vm.yti.terminology.api.model.ntrf.DEF;
 import fi.vm.yti.terminology.api.model.ntrf.ECON;
@@ -310,14 +305,28 @@ public class SKOSMapper {
 			addProperty(prefLabelResource, SKOSXL.literalForm, c, SKOS.prefLabel);	
 		}
 		
-	
+		// add all skos properties
+		source.listProperties().forEach(new Consumer<Statement>() {
+			
+			@Override
+			public void accept(Statement stmt) {
+				String predURI = stmt.getPredicate().getURI();
+				if(predURI.startsWith("http://www.w3.org/2004/02/skos/core#") || predURI.startsWith("http://www.w3.org/2008/05/skos#")) {
+					c.addProperty(stmt.getPredicate(), stmt.getObject());
+				}				
+			}
+		});			
 	}
 	
 	public Model mapTermedToSKOS(Model source) {
 		Model m = ModelFactory.createDefaultModel();		
 		Resource scheme = addConceptSchema(m, source);
 		source.listSubjectsWithProperty(RDF.type, SKOS.Concept).forEach(c -> {
-			addConcept(m, c, scheme);
+			// only add concepts where the id starts with the vocabulary uri
+			if(c.getURI().startsWith(scheme.getURI())) {
+				addConcept(m, c, scheme);
+			}
+			
 			
 		});
 		return m;
