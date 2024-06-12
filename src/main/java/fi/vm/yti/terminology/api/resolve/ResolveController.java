@@ -130,8 +130,8 @@ public class ResolveController {
 
     @Operation(summary = "Get a terminology", description = "Fetch a terminology identified by the UUID in requested format")
     @ApiResponse(responseCode = "200", description = "If the terminology was found then it is returned in requested format. If the given ID did not match a terminology then behaviour is undefined.")
-    @GetMapping(path = "/vocabulary", produces = { APPLICATION_JSON_VALUE, "application/ld+json", "application/rdf+xml", "text/turtle" })
-    public ResponseEntity<String> getVocabulary(@Parameter(description = "The ID of the requested terminology") @RequestParam UUID graphId,
+    @GetMapping(path = "/vocabulary", params="graphId", produces = { APPLICATION_JSON_VALUE, "application/ld+json", "application/rdf+xml", "text/turtle" })
+    public ResponseEntity<String> getVocabulary(@Parameter(description = "The ID of the requested terminology") @RequestParam("graphId") UUID graphId,
                                                 @Parameter(
                                                     description = "Requested format. This parameter has priority over the Accept header. If neither format parameter nor the accept header is valid then JSON is returned.",
                                                     schema = @Schema(allowableValues = { "application/json", "application/ld+json", "application/rdf+xml", "text/turtle" })
@@ -147,9 +147,9 @@ public class ResolveController {
 
     @Operation(summary = "Get a concept", description = "Fetch a concept identified by terminology and concept IDs in requested format")
     @ApiResponse(responseCode = "200", description = "If the concept was found then it is returned in requested format. If the given IDs did not match a concept then behaviour is undefined.")
-    @GetMapping(path = "/concept", produces = { APPLICATION_JSON_VALUE, "application/ld+json", "application/rdf+xml", "text/turtle" })
+    @GetMapping(path = "/concept", params="graphId", produces = { APPLICATION_JSON_VALUE, "application/ld+json", "application/rdf+xml", "text/turtle" })
     public ResponseEntity<String> getConcept(@Parameter(description = "The ID of the terminology containing the concept") @RequestParam UUID graphId,
-                                             @Parameter(description = "The ID of the requested concept") @RequestParam UUID id,
+                                             @Parameter(description = "The ID of the requested concept") @RequestParam("id") UUID id,
                                              @Parameter(
                                                  description = "Requested format. This parameter has priority over the Accept header. If neither format parameter nor the accept header is valid then JSON is returned.",
                                                  schema = @Schema(allowableValues = { "application/json", "application/ld+json", "application/rdf+xml", "text/turtle" })
@@ -181,9 +181,9 @@ public class ResolveController {
     
     @Operation(summary = "Get a concept", description = "Fetch a concept identified by PID in requested format")
     @ApiResponse(responseCode = "200", description = "If the concept was found then it is returned in requested format. If the given IDs did not match a concept then behaviour is undefined.")
-    @GetMapping(path = "/concept/{pid}", produces = { APPLICATION_JSON_VALUE, "application/ld+json", "application/rdf+xml", "text/turtle" })
+    @GetMapping(path = "/concept", params="pid", produces = { APPLICATION_JSON_VALUE, "application/ld+json", "application/rdf+xml", "text/turtle" })
     public ResponseEntity<String> getConceptByPID(
-    										 @PathVariable String pid,
+    										 @RequestParam("pid") String pid,
                                              @RequestParam(required = false) String format,
                                              @Parameter(description = "Requested format. The request parameter \"format\" has priority over the Accept header.")
                                              @RequestHeader("Accept") String acceptHeader) {
@@ -195,9 +195,9 @@ public class ResolveController {
     }
     @Operation(summary = "Get a terminology", description = "Fetch a terminology identified by the PID in requested format")
     @ApiResponse(responseCode = "200", description = "If the terminology was found then it is returned in requested format. If the given ID did not match a terminology then behaviour is undefined.")
-    @GetMapping(path = "/vocabulary/{pid}", produces = { APPLICATION_JSON_VALUE, "application/ld+json", "application/rdf+xml", "text/turtle" })
+    @GetMapping(path = "/vocabulary", params="pid", produces = { APPLICATION_JSON_VALUE, "application/ld+json", "application/rdf+xml", "text/turtle" })
     public ResponseEntity<String> getVocabularyByPID(
-    											@PathVariable String pid,	
+    											@RequestParam("pid") String pid,	
                                                 @RequestParam(required = false) String format,
                                                 @Parameter(description = "Requested format. The request parameter \"format\" has priority over the Accept header.")
                                                 @RequestHeader("Accept") String acceptHeader) {
