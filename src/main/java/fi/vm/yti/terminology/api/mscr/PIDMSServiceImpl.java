@@ -67,7 +67,7 @@ public class PIDMSServiceImpl implements PIDService {
 
 	@Override
 	public String mintPartIdentifier(String pid) {
-		return pid + "@mapping=" + UUID.randomUUID();
+		return pid + "@concept=" + UUID.randomUUID();
 	}
 
 
