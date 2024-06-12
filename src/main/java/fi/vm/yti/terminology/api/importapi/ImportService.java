@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.PreDestroy;
@@ -258,8 +259,9 @@ public class ImportService {
         if (!exists) {
             throw new NullPointerException("Terminology doesnt exist");
         }
-
+        
         var node = termedService.getVocabulary(terminologyId);
+        String terminologyPID = node.getUri();
         List<String> languages = node.getProperties().get("language").stream().map(Attribute::getValue).collect(Collectors.toList());
 
         var parser = new SimpleExcelParser();
@@ -267,7 +269,15 @@ public class ImportService {
         parser.checkWorkbook(workbook);
 
         List<GenericNode> nodes = parser.buildNodes(workbook, terminologyId, languages);
-
+        // update URIs
+        nodes.forEach(new Consumer<GenericNode>() {
+			@Override
+			public void accept(GenericNode t) {
+				t.setUri(terminologyPID + "@concept=" + t.getId().toString());
+			}
+        	
+		});
+        
         check(authorizationManager.canModifyNodes(nodes));
 
         //JOB
