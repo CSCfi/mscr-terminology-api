@@ -390,11 +390,11 @@ public class FrontendController {
 		searchSourceBuilder.query(QueryBuilders.termQuery("id", id));
 		sr.source(searchSourceBuilder);
 		TerminologySearchResponse r = elasticSearchService.findTerminology(UUID.fromString(id));
-		if(r.getTotalHitCount() == 1) {
+		if(r.getTotalHitCount() > 0) {
 			return r.getTerminologies().get(0).getUri();
 		}
 
-    	throw new RuntimeException("ID not found or multiple results. " + id);
+    	throw new RuntimeException("ID not found: " + id);
     }
 
 
