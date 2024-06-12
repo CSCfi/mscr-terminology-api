@@ -531,10 +531,12 @@ public class FrontendTermedService {
 
         Graph oldGraph = dump.getGraphs().get(0);
         UUID newGraphId = UUID.randomUUID();
-
+        String PID = PIDService.mint(newGraphId.toString());
+        
+        
         Graph graph = new Graph(newGraphId,
                 createVersionDTO.getNewCode(),
-                formatNamespace(createVersionDTO.getNewCode()),
+                PID,
                 oldGraph.getRoles(),
                 oldGraph.getPermissions(),
                 oldGraph.getProperties());
@@ -554,12 +556,13 @@ public class FrontendTermedService {
         // Create id map for saving references
         Map<UUID, UUID> nodeIdMap = new HashMap<>();
         dump.getNodes().stream().forEach(n -> nodeIdMap.put(n.getId(), UUID.randomUUID()));
+        dump.getNodes().stream().forEach(n -> System.out.println(n.getUri() + " " + n.getId()));
+        
 
         List<GenericNode> nodes = dump.getNodes().stream().map(n -> new GenericNode(
                 nodeIdMap.get(n.getId()),
                 n.getCode(),
-                String.format("%s%s",
-                        formatNamespace(createVersionDTO.getNewCode()), n.getCode()),
+                (n.getUri().contains("@concept") ? PID + "@concept=" + nodeIdMap.get(n.getId()) : PID) ,
                 n.getNumber(),
                 n.getCreatedBy(),
                 n.getCreatedDate(),
@@ -570,7 +573,7 @@ public class FrontendTermedService {
                 n.getReferences(),
                 n.getReferrers())
             .copyAllToGraph(newGraphId, nodeIdMap)
-        ).collect(Collectors.toList());
+        ).collect(Collectors.toList());	
 
         Dump newVersion = new Dump(asList(graph), metaNodes, nodes);
 
