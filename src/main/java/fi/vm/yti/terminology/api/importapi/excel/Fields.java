@@ -51,4 +51,9 @@ public class Fields {
     public static final String TARGET_GRAPH = "TARGET_GRAPH";
     public static final String TARGET_ID = "TARGET_ID";
     public static final String LINK_TYPE = "LINK_TYPE";
+    
+    public static final String BROADER_PREFLABEL_EN = "BROADER_PREFLABEL_EN";
+    public static final String NARROWER_PREFLABEL_EN = "NARROWER_PREFLABEL_EN";
+	public static final String RELATED_PREFLABEL_EN = "RELATED_PREFLABEL_EN";
+    
 }

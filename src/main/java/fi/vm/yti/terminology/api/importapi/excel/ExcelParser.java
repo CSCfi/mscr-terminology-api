@@ -15,6 +15,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.protobuf.Field;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -179,6 +181,16 @@ public class ExcelParser {
         return nodes;
     }
 
+    private void handlePrefLabelRelation(Row row, TypeId typeId, Map<String, UUID> prefLabelToUUID, Map<String, Integer> columnMap,  Map<String, List<Identifier>> references, String refId, String field ) {
+        if(references.get(refId).isEmpty()) {
+        	// try to parse narrower from the narrower_preflabel_en field
+        	String label = getCellValue(row, columnMap, field);        	
+        	if(prefLabelToUUID.containsKey(label)) {
+        		references.put("narrower", List.of(new Identifier(prefLabelToUUID.get(label), typeId)));
+        	}
+        }    	
+    }
+    
     public List<GenericNode> buildConceptNodes(XSSFWorkbook workbook, String namespace, UUID terminologyId, List<String> languages) {
         var sheet = getSheet(workbook, SHEET_CONCEPTS);
 
@@ -189,7 +201,7 @@ public class ExcelParser {
 
         // get concept link for references
         var conceptLinks = buildConceptLinkNodes(workbook, namespace, terminologyId, languages);
-
+        var prefLabelToUUID = buildPrefLabelToUUID(sheet, columnMap);
         try {
             for (var i = 1; i <= sheet.getLastRowNum(); i++) {
                 row = sheet.getRow(i);
@@ -237,6 +249,10 @@ public class ExcelParser {
                 references.put("hasPart", getMergedCellIdentifiers(
                         row, columnMap.get(Fields.HASPARTCONCEPT), typeId, false));
 
+                handlePrefLabelRelation(row, typeId, prefLabelToUUID, columnMap, references, "narrower", Fields.NARROWER_PREFLABEL_EN);
+                handlePrefLabelRelation(row, typeId, prefLabelToUUID, columnMap, references, "broader", Fields.BROADER_PREFLABEL_EN);
+                handlePrefLabelRelation(row, typeId, prefLabelToUUID, columnMap, references, "related", Fields.RELATED_PREFLABEL_EN);
+               
                 conceptLinks.getOrDefault(getUUID(row, columnMap.get(Fields.UUID)), new HashSet<>())
                         .forEach(link -> {
                             references.put(
@@ -275,7 +291,18 @@ public class ExcelParser {
         return nodes;
     }
 
-    public Map<UUID, Set<ConceptLinkImportDTO>> buildConceptLinkNodes(XSSFWorkbook workbook, String namespace, UUID terminologyId, List<String> languages) {
+    private Map<String, UUID> buildPrefLabelToUUID(XSSFSheet sheet, Map<String, Integer> columnMap ) {
+    	Map<String, UUID> map = new HashMap<String, UUID>();
+        for (var i = 1; i <= sheet.getLastRowNum(); i++) {
+            var row = sheet.getRow(i);
+            String label = getCellValue(row, columnMap, "PREFERRED_TERM_LABEL");
+            String uuid = getCellValue(row, columnMap, Fields.UUID);
+            map.put(label, UUID.fromString(uuid));
+        }
+        return map;
+	}
+
+	public Map<UUID, Set<ConceptLinkImportDTO>> buildConceptLinkNodes(XSSFWorkbook workbook, String namespace, UUID terminologyId, List<String> languages) {
         var sheet = getSheet(workbook, SHEET_CONCEPT_LINKS);
         var columnMap = mapColumnNames(getRow(sheet, 0, false));
 
@@ -640,4 +667,5 @@ public class ExcelParser {
     private boolean isEmptyCell(Cell cell) {
         return cell == null || cell.getCellType() == CellType.BLANK;
     }
+    
 }

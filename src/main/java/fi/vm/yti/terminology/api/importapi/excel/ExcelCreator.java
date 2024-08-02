@@ -182,6 +182,9 @@ public class ExcelCreator {
             this.addCodeOfReference("HASPARTCONCEPT", "hasPart", terminology, builder);
 
             builder.addDataToCurrentRow("UUID", terminology.getID());
+            builder.addDataToCurrentRow("NARROWER_PREFLABEL_EN", "");
+            builder.addDataToCurrentRow("BROADER_PREFLABEL_EN", "");
+            builder.addDataToCurrentRow("RELATED_PREFLABEL_EN", "");
 
             builder.nextRow();
         }
