@@ -240,7 +240,7 @@ public class ImportService {
     	try {
     		File outputFile = m.mapToSimpleExcel(is);
     		is2 = new FileInputStream(outputFile);
-    		return handleSimpleExcelImport(terminologyId, is2);
+    		return handleSimpleExcelImport(terminologyId, is2, true);
     	}catch(Exception ex) {
     		if(is2 != null) {
     			try {
@@ -252,8 +252,11 @@ public class ImportService {
     		throw ex;
     	}
     }    
-    
     public UUID handleSimpleExcelImport(UUID terminologyId, InputStream is) throws NullPointerException {
+    	return handleSimpleExcelImport(terminologyId, is, false);
+    	
+    }
+    public UUID handleSimpleExcelImport(UUID terminologyId, InputStream is, boolean preserveURIs) throws NullPointerException {
         check(authorizationManager.canModifyAllGraphs(List.of(terminologyId)));
         boolean exists = terminologyExists(terminologyId);
         if (!exists) {
@@ -270,13 +273,16 @@ public class ImportService {
 
         List<GenericNode> nodes = parser.buildNodes(workbook, terminologyId, languages);
         // update URIs
-        nodes.forEach(new Consumer<GenericNode>() {
-			@Override
-			public void accept(GenericNode t) {
-				t.setUri(terminologyPID + "@concept=" + t.getId().toString());
-			}
+        if(!preserveURIs) {
+            nodes.forEach(new Consumer<GenericNode>() {
+    			@Override
+    			public void accept(GenericNode t) {
+    				t.setUri(terminologyPID + "@concept=" + t.getId().toString());
+    			}
+            	
+    		});
         	
-		});
+        }
         
         check(authorizationManager.canModifyNodes(nodes));
 
