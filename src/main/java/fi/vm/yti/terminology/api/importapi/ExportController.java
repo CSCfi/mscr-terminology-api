@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.jena.riot.Lang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -87,8 +88,12 @@ public class ExportController {
                 re = exportService.getRDF(id);
             } else if (format.equalsIgnoreCase("xlsx")) {
                 re = exportService.getXLSX(id, List.of());
-            } else if (format.equalsIgnoreCase("SKOS")) {
-                re = exportService.getSKOS(id);
+            } else if (format.equalsIgnoreCase("SKOS")||format.equalsIgnoreCase("SKOSTTL")) {
+                re = exportService.getSKOS(id, Lang.TTL);
+            } else if (format.equalsIgnoreCase("SKOSJSONLD")||format.equalsIgnoreCase("SKOSJSONLD11")) {
+                re = exportService.getSKOS(id, Lang.JSONLD11);
+            } else if (format.equalsIgnoreCase("SKOSJSONLD10")) {
+                re = exportService.getSKOS(id, Lang.JSONLD10);
             } else {
                 re = exportService.getTXT(id);
             }

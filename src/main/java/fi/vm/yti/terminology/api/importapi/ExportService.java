@@ -23,6 +23,8 @@ import jakarta.ws.rs.InternalServerErrorException;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -268,7 +270,7 @@ public class ExportService {
                 .body(new InputStreamResource(in));
     }
 
-	public ResponseEntity<?> getSKOS(UUID vocabularyId) {
+	public ResponseEntity<?> getSKOS(UUID vocabularyId, Lang lang) {
 		String response = getFullVocabularyTXT(vocabularyId);
 		Model model = ModelFactory.createDefaultModel();
 		StringReader reader = new StringReader(response);
@@ -277,8 +279,8 @@ public class ExportService {
 		
 		SKOSMapper m = new SKOSMapper();
 		Model resultModel = m.mapTermedToSKOS(model);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();		
-		resultModel.write(out, "TTL");
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		RDFDataMgr.write(out, resultModel, lang);
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
 		
 		return ResponseEntity
