@@ -55,7 +55,7 @@ public class PIDMSServiceImpl implements PIDService {
 				throw new Exception("Could not mint PID using url " + url);
 			}
 			String content = RestUtils.readContent(con.getInputStream());
-			return content;
+			return "http://hdl.handle.net/" + content;
 		} catch (Exception ex) {
 			throw ex;
 		} finally {
