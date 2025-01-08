@@ -75,7 +75,13 @@ public class SKOSMapper {
         var prop = resource.getProperty(property, "en");
         //null check for property
         if(prop == null){
-            return null;
+            prop = resource.getProperty(property);
+            if(prop != null) {
+            	return prop.getString();
+            }
+            else {
+            	return null;
+            }
         }
         var object = prop.getObject();
         //null check for object
