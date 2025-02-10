@@ -20,10 +20,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @OpenAPIDefinition(
     info = @Info(
-        title = "YTI Terminology Service",
-        description = "YTI Terminology Service - Terminology API",
+        title = "MSCR Vocabulary Service",
+        description = "MSCR Vocabulary Service - Terminology API",
         termsOfService = "https://opensource.org/licenses/EUPL-1.2",
-        contact = @Contact(name = "YTI Terminology Service by the Digital and Population Data Services Agency", url = "https://yhteentoimiva.suomi.fi/", email = "yhteentoimivuus@dvv.fi"),
         license = @License(name = "EUPL-1.2", url = "https://opensource.org/licenses/EUPL-1.2")
     ),
     servers = { @Server(url = "/terminology-api", description = "Terminology API Service") },
