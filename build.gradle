@@ -15,8 +15,8 @@ plugins {
 artifactoryPublish.skip = true
 
 group = 'fi.vm.yti'
-sourceCompatibility = '11'
-targetCompatibility = '11'
+sourceCompatibility = '17'
+targetCompatibility = '17'
 
 repositories {
     mavenLocal()
@@ -30,7 +30,7 @@ repositories {
         url = uri("https://maven.pkg.github.com/CSCfi/yti-spring-security")
         credentials {
             username = project.findProperty("gpr.user") ?: System.getenv("GPR_USERNAME")
-            password = project.findProperty("gpr.key") ?: System.getenv("GRP_TOKEN")
+            password = project.findProperty("gpr.key") ?: System.getenv("GRP_TOKEN")          
         }        
     }
     maven {
