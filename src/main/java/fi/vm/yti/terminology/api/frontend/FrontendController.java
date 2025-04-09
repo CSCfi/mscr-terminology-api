@@ -373,9 +373,15 @@ public class FrontendController {
         logger.info("and save ids: ");
         for (int i = 0; i < deleteAndSave.getSave().size(); i++) {
             logger.info(deleteAndSave.getSave().get(i).getId().toString());
-            String conceptID = deleteAndSave.getSave().get(i).getId().toString();
-            String terminologyPID = getVocabularyPID(deleteAndSave.getSave().get(i).getType().getGraphId().toString());
-            deleteAndSave.getSave().get(i).setUri(terminologyPID + "@concept=" + conceptID);
+            String typeId = deleteAndSave.getSave().get(i).getType().getId().name();
+            if("Concept".equals(typeId)) {
+                String conceptURI = deleteAndSave.getSave().get(i).getUri();
+                if(conceptURI == null || conceptURI.indexOf("@concept") < 0) {
+                    String conceptID = deleteAndSave.getSave().get(i).getId().toString();                	
+                    String terminologyPID = getVocabularyPID(deleteAndSave.getSave().get(i).getType().getGraphId().toString());
+                	deleteAndSave.getSave().get(i).setUri(terminologyPID + "@concept=" + conceptID);	                    
+                }                
+            }
         }
 
         termedService.bulkChange(deleteAndSave, sync);
